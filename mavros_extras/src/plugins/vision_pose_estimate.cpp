@@ -21,6 +21,7 @@
 
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/Odometry.h>
 
 namespace mavros {
 namespace extra_plugins{
@@ -51,6 +52,11 @@ public:
 		sp_nh.param<std::string>("tf/child_frame_id", tf_child_frame_id, "vision_estimate");
 		sp_nh.param("tf/rate_limit", tf_rate, 10.0);
 
+		double delay;
+		sp_nh.param("visodom_delay_ms", delay, 30.0);
+		visodom_delay_ms = float(delay);
+		visodom_delay_s = visodom_delay_ms*1e-3;
+
 		if (tf_listen) {
 			ROS_INFO_STREAM_NAMED("vision_pose", "Listen to vision transform " << tf_frame_id
 						<< " -> " << tf_child_frame_id);
@@ -59,6 +65,7 @@ public:
 		else {
 			vision_sub = sp_nh.subscribe("pose", 10, &VisionPoseEstimatePlugin::vision_cb, this);
 			vision_cov_sub = sp_nh.subscribe("pose_cov", 10, &VisionPoseEstimatePlugin::vision_cov_cb, this);
+			visodom_sub = sp_nh.subscribe("vis_odom", 1, &VisionPoseEstimatePlugin::visodom_cb, this);
 		}
 	}
 
@@ -73,10 +80,12 @@ private:
 
 	ros::Subscriber vision_sub;
 	ros::Subscriber vision_cov_sub;
+	ros::Subscriber visodom_sub;
 
 	std::string tf_frame_id;
 	std::string tf_child_frame_id;
 	double tf_rate;
+	float visodom_delay_ms, visodom_delay_s;
 	ros::Time last_transform_stamp;
 
 	/* -*- low-level send -*- */
@@ -159,6 +168,33 @@ private:
 
 		send_vision_estimate(req->header.stamp, tr, req->pose.covariance);
 	}
+
+	void visodom_cb(const nav_msgs::Odometry::ConstPtr &odom)
+	{
+
+		if ( odom->header.stamp.toSec() - last_transform_stamp.toSec() < 0.01){
+			ROS_DEBUG_THROTTLE_NAMED(10, "vision_pose", "Vision: Same transform as last one, dropped.");
+			return;
+		}
+		last_transform_stamp = odom->header.stamp;
+		mavlink::ardupilotmega::msg::VISION_POSITION_DELTA vo{};
+
+		vo.time_usec = last_transform_stamp.toNSec() / 1000;
+		vo.time_delta_usec = visodom_delay_ms*1e3; // 30 ms of delta t makes sense
+		// ROS uses FLU whereas ardupilot uses FRD in body frame.
+		vo.position_delta[0] = odom->twist.twist.linear.x * visodom_delay_s;
+		vo.position_delta[1] = -odom->twist.twist.linear.y * visodom_delay_s;
+		vo.position_delta[2] = -odom->twist.twist.linear.z * visodom_delay_s;
+
+		vo.angle_delta[0] = odom->twist.twist.angular.x * visodom_delay_s;
+		vo.angle_delta[1] = -odom->twist.twist.angular.y * visodom_delay_s;
+		vo.angle_delta[2] = -odom->twist.twist.angular.z * visodom_delay_s;
+
+		vo.confidence = odom->twist.covariance[0];
+		// ROS_INFO("hit");
+		UAS_FCU(m_uas)->send_message_ignore_drop(vo);
+	}
+
 };
 }	// namespace extra_plugins
 }	// namespace mavros

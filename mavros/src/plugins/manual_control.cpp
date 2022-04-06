@@ -77,7 +77,6 @@ private:
 		msg.z = req->z;
 		msg.r = req->r;
 		msg.buttons = req->buttons;
-
 		UAS_FCU(m_uas)->send_message_ignore_drop(msg);
 	}
 };

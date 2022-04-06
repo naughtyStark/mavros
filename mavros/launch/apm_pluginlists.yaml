@@ -1,6 +1,6 @@
 plugin_blacklist:
 # common
-- actuator_control
+# - actuator_control
 - ftp
 - safety_area
 - hil
@@ -10,8 +10,9 @@ plugin_blacklist:
 - image_pub
 - px4flow
 - vibration
-- vision_speed_estimate
 - wheel_odometry
 
-plugin_whitelist: []
+plugin_whitelist:
+- vision*
+- local*
 #- 'sys_*'
