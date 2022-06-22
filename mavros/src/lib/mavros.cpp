@@ -165,7 +165,10 @@ MavRos::MavRos() :
 		// setup GCS link bridge
 		gcs_link->message_received_cb = [this, fcu_link](const mavlink_message_t *msg, const Framing framing) {
 			this->last_message_received_from_gcs = ros::Time::now();
-			fcu_link->send_message_ignore_drop(msg);
+			if(msg->msgid != 66)
+			{
+				fcu_link->send_message_ignore_drop(msg);
+			}
 		};
 
 		gcs_link_diag.set_connection_status(true);
