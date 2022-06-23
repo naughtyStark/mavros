@@ -44,7 +44,7 @@ private:
 	// fcu_link stored in mav_uas
 	mavconn::MAVConnInterface::Ptr gcs_link;
 	bool gcs_quiet_mode;
-	ros::Time last_message_received_from_gcs;
+	ros::Time last_message_received_from_gcs, last_message_sent_to_gcs;
 	ros::Duration conn_timeout;
 
 	ros::Publisher mavlink_pub;

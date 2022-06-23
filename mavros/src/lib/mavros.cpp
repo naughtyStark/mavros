@@ -152,7 +152,18 @@ MavRos::MavRos() :
 					(ros::Time::now() - this->last_message_received_from_gcs > this->conn_timeout)) {
 					return;
 				}
-
+				bool condition = msg->msgid >= 23 and msg->msgid <= 36 ? 1 : 0;
+				if((ros::Time::now() - this->last_message_sent_to_gcs).toSec() < 0.5)
+				{
+					if(condition)
+					{
+						return;
+					}
+					else
+					{
+						this->last_message_sent_to_gcs = ros::Time::now();
+					}
+				}
 				gcs_link->send_message_ignore_drop(msg);
 			}
 		},
@@ -169,7 +180,6 @@ MavRos::MavRos() :
 			{
 				fcu_link->send_message_ignore_drop(msg);
 			}
-			fcu_link->send_message_ignore_drop(msg);
 		});
 
 		gcs_link_diag.set_connection_status(true);
