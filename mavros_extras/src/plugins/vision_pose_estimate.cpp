@@ -190,7 +190,7 @@ private:
 		vo.angle_delta[1] = -odom->twist.twist.angular.y * visodom_delay_s;
 		vo.angle_delta[2] = -odom->twist.twist.angular.z * visodom_delay_s;
 
-		vo.confidence = odom->twist.covariance[0];
+		vo.confidence = sqrtf(odom->twist.covariance[0]);
 		// ROS_INFO("hit");
 		UAS_FCU(m_uas)->send_message_ignore_drop(vo);
 	}
