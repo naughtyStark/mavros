@@ -27,9 +27,9 @@ private:
 
 	void callback(const mavros_msgs::PlayTuneV2::ConstPtr& tune)
 	{
-		auto msg = mavlink::common::msg::PLAY_TUNE_V2{};
+		auto msg = mavlink::common::msg::PLAY_TUNE{};
 		m_uas->msg_set_target(msg);
-		msg.format = tune->format;
+		//msg.format = tune->format;
 		mavlink::set_string_z(msg.tune, tune->tune);
 		UAS_FCU(m_uas)->send_message_ignore_drop(msg);
 	}
